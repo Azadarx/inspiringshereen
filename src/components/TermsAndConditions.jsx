@@ -142,7 +142,6 @@ const TermsAndConditions = () => {
           </motion.div>
         </div>
       </div>
-      <Footer/>
     </>
   );
 };

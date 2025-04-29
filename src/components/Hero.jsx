@@ -1,8 +1,20 @@
 // src/components/Hero.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useContent } from '../contexts/ContentContext';
 
 const Hero = () => {
+  const { eventDetails, canEdit, updateEventDetails, toggleEventEditMode } = useContent();
+  const [tempDate, setTempDate] = useState(eventDetails.date);
+  const [tempTime, setTempTime] = useState(eventDetails.time);
+
+  const handleSave = async () => {
+    await updateEventDetails({
+      date: tempDate,
+      time: tempTime
+    });
+  };
+
   return (
     <div className="relative min-h-screen bg-white overflow-hidden">
       {/* Decorative elements - reduced to just 2 static divs */}
@@ -17,11 +29,60 @@ const Hero = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="inline-block"
+              className="inline-block relative"
             >
-              <span className="bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent text-lg font-medium mb-2 block">
-                LIVE ON APRIL 19TH, 11:30 AM
-              </span>
+              {!eventDetails.isEditing ? (
+                <div className="relative">
+                  <span className="bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent text-lg font-medium mb-2 block">
+                    LIVE ON {eventDetails.date}, {eventDetails.time}
+                  </span>
+                  
+                  {canEdit && (
+                    <button 
+                      onClick={toggleEventEditMode}
+                      className="absolute -right-8 top-0 text-violet-600 hover:text-fuchsia-600"
+                      title="Edit event date and time"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-center gap-2 bg-violet-50 p-2 rounded-lg border border-violet-200">
+                  <div className="flex flex-col sm:flex-row items-center gap-2">
+                    <input
+                      type="text"
+                      value={tempDate}
+                      onChange={(e) => setTempDate(e.target.value)}
+                      className="border border-violet-300 rounded px-2 py-1 text-sm w-32"
+                      placeholder="e.g., APRIL 19TH"
+                    />
+                    <input
+                      type="text"
+                      value={tempTime}
+                      onChange={(e) => setTempTime(e.target.value)}
+                      className="border border-violet-300 rounded px-2 py-1 text-sm w-24"
+                      placeholder="e.g., 11:30 AM"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSave}
+                      className="bg-violet-600 text-white px-2 py-1 rounded text-sm hover:bg-violet-700"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={toggleEventEditMode}
+                      className="bg-gray-200 text-gray-700 px-2 py-1 rounded text-sm hover:bg-gray-300"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
             
             <motion.h1 

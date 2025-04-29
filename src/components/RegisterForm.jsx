@@ -66,9 +66,9 @@ const RegisterForm = () => {
     e.preventDefault();
 
     // Ensure user is authenticated - should already be handled by AuthFlowHandler
-    if (!currentUser) {
-      return; // Exit early - don't start payment process
-    }
+    // if (!currentUser) {
+    //   return; // Exit early - don't start payment process
+    // }
 
     setLoading(true);
     setError('');
@@ -76,8 +76,7 @@ const RegisterForm = () => {
 
     try {
       // Get the current authentication token
-      const idToken = await currentUser.getIdToken(true); // Force refresh to ensure token is valid
-      const authHeader = { Authorization: `Bearer ${idToken}` };
+      const authHeader = {};
 
       // Step 1: Save registration data in RTDB
       await axios.post(
@@ -94,11 +93,13 @@ const RegisterForm = () => {
       // Step 2: Create payment order with Razorpay
       const orderResponse = await axios.post(
         `${API_BASE_URL}/api/create-payment-order`,
-        {},  // Empty body as server will get user info from Firebase
         {
-          headers: authHeader
-        }
+          ...formData,
+          timestamp: new Date().toISOString()
+        },
+        { headers: authHeader }
       );
+
 
       if (!orderResponse.data.success) {
         throw new Error(orderResponse.data.error || 'Failed to create payment order');
@@ -116,10 +117,10 @@ const RegisterForm = () => {
       // Step 4: Initialize Razorpay options
       const options = {
         key: razorpayKey,
-        amount: 9900, // amount in paisa (99 INR)
+        amount: 100, // amount in paisa (99 INR)
         currency: "INR",
         name: "Inspiring Shereen",
-        description: "Life-Changing Masterclass Registration",
+        description: "",
         order_id: orderId,
         // In RegisterForm.jsx - replace the existing handler function
         // In RegisterForm.jsx - replace the existing handler function in Razorpay options
@@ -146,7 +147,7 @@ const RegisterForm = () => {
             );
 
             // Also don't wait for this either - do it in parallel
-            const updatePromise = updateUserRegistration(response.razorpay_order_id, {
+            const updatePromise = Promise.resolve(response.razorpay_order_id, {
               orderId: response.razorpay_order_id,
               paymentId: response.razorpay_payment_id,
               amount: '₹99',

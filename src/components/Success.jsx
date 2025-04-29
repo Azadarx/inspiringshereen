@@ -6,10 +6,12 @@ import Navbar from './Navbar';
 import Footer from './Footer';
 import { useAuth } from '../contexts/AuthContext';
 import { clearPaymentData } from '../utils/paymentHandlers';
+import AuthModal from './auth/AuthModal';
 
 const Success = () => {
   const [status, setStatus] = useState('loading');
   const [orderDetails, setOrderDetails] = useState({});
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [userData, setUserData] = useState({
     fullName: '',
     email: '',
@@ -33,37 +35,32 @@ const Success = () => {
   }, [navigate]);
 
   useEffect(() => {
-    // Check if the page is being accessed directly without a successful payment
     const isPaymentSuccessful = sessionStorage.getItem('paymentSuccessful') === 'true';
-
-    // Get reference ID from multiple possible sources
     const urlParams = new URLSearchParams(location.search);
-    const referenceId = sessionStorage.getItem('referenceId') ||
+    const referenceId =
+      sessionStorage.getItem('referenceId') ||
       localStorage.getItem('referenceId') ||
       urlParams.get('refId');
 
-    // More strict verification - must have both payment success flag AND a reference ID
     if (!isPaymentSuccessful || !referenceId) {
-      console.log("Payment verification failed, redirecting to home");
       navigate('/');
       return;
     }
 
-    // Load user data from sessionStorage first
     const storedUserData = sessionStorage.getItem('userData');
     if (storedUserData) {
       try {
-        const parsedUserData = JSON.parse(storedUserData);
-        setUserData(parsedUserData);
+        setUserData(JSON.parse(storedUserData));
       } catch (error) {
-        console.error("Error parsing stored user data:", error);
+        console.error('Error parsing stored user data:', error);
       }
     }
 
-    // Then verify the payment
+    // ✅ Always call verifyPayment
     verifyPayment(referenceId);
-    
-  }, [currentUser, getUserData, navigate, location.search]);
+  }, [navigate, location.search]);
+
+
 
   const verifyPayment = async (referenceId) => {
     try {
@@ -71,16 +68,21 @@ const Success = () => {
 
       const headers = {};
 
-      if (currentUser) {
-        const token = await currentUser.getIdToken();
-        headers.Authorization = `Bearer ${token}`;
-      }
+      // if (currentUser) {
+      //   try {
+      //     const token = await currentUser.getIdToken();
+      //     headers.Authorization = `Bearer ${token}`;
+      //   } catch (err) {
+      //     console.warn("Token fetch failed:", err);
+      //   }
+      // }
+
 
       const response = await axios.get(apiUrl, { headers });
 
       // Even if API fails, we should still show success page since we have the sessionStorage flags
       const successStatus = response.data?.success !== false;
-      
+
       const orderData = {
         referenceId,
         paymentStatus: 'Confirmed',
@@ -102,18 +104,18 @@ const Success = () => {
       }
     } catch (error) {
       console.error("Error verifying payment:", error);
-      
+
       // IMPORTANT: Instead of immediately redirecting on failure, show success anyways
       // Since we already have the sessionStorage payment flag, payment likely succeeded
       // but the verification endpoint might be failing
-      
+
       const orderData = {
         referenceId,
         paymentStatus: 'Confirmed',
         amount: '₹99',
         date: new Date().toLocaleDateString()
       };
-      
+
       setOrderDetails(orderData);
       setStatus('success');
       setPaymentVerified(true);
@@ -274,9 +276,9 @@ const Success = () => {
                 {!currentUser && (
                   <p className="text-sm text-gray-600 mt-4">
                     Want to save your registration details?{" "}
-                    <Link to="/register" className="text-violet-600 hover:text-violet-800 font-medium">
+                    <button onClick={() => setAuthModalOpen(true)} className="text-violet-600 hover:text-violet-800 font-medium">
                       Create an account
-                    </Link>
+                    </button>
                   </p>
                 )}
               </div>
@@ -285,6 +287,7 @@ const Success = () => {
         </div>
       </div>
       <Footer />
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </>
   );
 };

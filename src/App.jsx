@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import About from './components/About';
@@ -16,25 +16,57 @@ import RefundAndCancellation from './components/RefundAndCancellation';
 import RazorpayPrivacyPolicy from './components/RazorpayPrivacyPolicy';
 import Profile from './components/Profile';
 import AuthFlowHandler from './components/auth/AuthFlowHandler';
+import Loader from './components/Loader';
 
-function App() {
+// Loading state context
+export const LoadingContext = React.createContext({
+  isLoading: false,
+  setLoading: () => {}
+});
+
+// Route change detector and loader manager
+const RouteChangeLoader = ({ children }) => {
+  const [isLoading, setLoading] = useState(true);
+  const location = useLocation();
+
+  // Show loader on initial load and route changes
+  useEffect(() => {
+    setLoading(true);
+    
+    // Set a timeout to hide loader after a minimum display time
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000); // 1 second minimum loading display
+    
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
+
   return (
-    <Router>
+    <LoadingContext.Provider value={{ isLoading, setLoading }}>
+      {isLoading && <Loader />}
+      {children}
+    </LoadingContext.Provider>
+  );
+};
+
+// Main Routes Component
+const AppRoutes = () => {
+  return (
+    <RouteChangeLoader>
       <Routes>
         <Route path="/" element={
           <div className="font-poppins">
             <Navbar />
             <Hero />
             <About />
-            <Features />
             <Coaches />
-            <Testimonials />
             <Pricing />
             <RegisterForm />
+            <Features />
+            <Testimonials />
             <Footer />
           </div>
         } />
-        {/* Update the register route to use AuthFlowHandler */}
         <Route path="/register" element={
           <>
             <Navbar />
@@ -50,6 +82,52 @@ function App() {
         <Route path="/success" element={<Success />} />
         <Route path="/*" element={<Navigate to="/" />} />
       </Routes>
+    </RouteChangeLoader>
+  );
+};
+
+// Custom hook to use the loading context
+export const useLoading = () => {
+  const context = React.useContext(LoadingContext);
+  if (!context) {
+    throw new Error('useLoading must be used within a LoadingProvider');
+  }
+  
+  const { isLoading, setLoading } = context;
+  
+  // Helper function to wrap async operations with loading state
+  const showLoading = (callback) => {
+    setLoading(true);
+    
+    const hideLoader = () => {
+      setTimeout(() => {
+        setLoading(false);
+      }, 500); // Minimum display time
+    };
+    
+    try {
+      const result = callback();
+      
+      // Handle promises
+      if (result instanceof Promise) {
+        return result.finally(hideLoader);
+      } else {
+        hideLoader();
+        return result;
+      }
+    } catch (error) {
+      hideLoader();
+      throw error;
+    }
+  };
+  
+  return { isLoading, showLoading };
+};
+
+function App() {
+  return (
+    <Router>
+      <AppRoutes />
     </Router>
   );
 }
