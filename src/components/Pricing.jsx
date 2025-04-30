@@ -1,14 +1,54 @@
 // src/components/Pricing.jsx
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useContent } from '../contexts/ContentContext';
+import SuccessToast from './SuccessToast';
 
 const Pricing = () => {
+  const {
+    eventDetails,
+    canEdit,
+    toggleEventEditMode,
+    updateEventDetails,
+    saveSuccess,
+    showToast,
+    toastMessage,
+    hideToast
+  } = useContent();
+
+  // Function to handle save changes
+  const handleSaveChanges = async () => {
+    const success = await updateEventDetails({
+      date: eventDetails.tempDate || eventDetails.date,
+      time: eventDetails.tempTime || eventDetails.time,
+      price: eventDetails.tempPrice || eventDetails.price || 99,
+      originalPrice: eventDetails.tempOriginalPrice || eventDetails.originalPrice || 199,
+      location: eventDetails.tempLocation || eventDetails.location || "Live on Zoom",
+      duration: eventDetails.tempDuration || eventDetails.duration || "3-Hour Comprehensive Session",
+      discountPercentage: eventDetails.tempDiscountPercentage || eventDetails.discountPercentage || "50%",
+      tempDate: null,
+      tempTime: null,
+      tempPrice: null,
+      tempOriginalPrice: null,
+      tempLocation: null,
+      tempDuration: null,
+      tempDiscountPercentage: null,
+      isEditing: false // Explicitly set to false to close the modal
+    });
+  };
+
   return (
     <section id="pricing" className="py-20 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 relative overflow-hidden">
+      {/* Toast notification */}
+      <SuccessToast
+        message={toastMessage}
+        isVisible={showToast}
+        onClose={hideToast}
+      />
       {/* Reduced to just one animated background element */}
       <div className="absolute inset-0 z-0">
-        <motion.div 
-          animate={{ 
+        <motion.div
+          animate={{
             y: [10, -10, 10],
             rotate: [0, 5, 0, -5, 0]
           }}
@@ -38,7 +78,9 @@ const Pricing = () => {
             {/* Decorative element preserved but simplified */}
             <div className="absolute -top-8 -right-8 w-24 h-24 bg-yellow-100 rounded-lg shadow-lg flex items-center justify-center transform rotate-12 z-20 border-2 border-yellow-300">
               <div className="text-center">
-                <div className="text-yellow-500 text-lg font-bold">50%</div>
+                <div className="text-yellow-500 text-lg font-bold">
+                  {eventDetails.discountPercentage || '50%'}
+                </div>
                 <div className="text-gray-700 font-medium text-sm">OFF</div>
               </div>
             </div>
@@ -59,8 +101,23 @@ const Pricing = () => {
                     <p className="text-purple-600 font-medium">Limited seats available!</p>
                   </div>
                   <div className="text-right">
-                    <span className="text-gray-400 line-through text-lg">₹199</span>
-                    <div className="text-3xl font-extrabold text-purple-600">₹99</div>
+                    <span className="text-gray-400 line-through text-lg">
+                      ₹{eventDetails.originalPrice || 199}
+                    </span>
+                    <div className="text-3xl font-extrabold text-purple-600">
+                      ₹{eventDetails.price || 99}
+                      {canEdit && (
+                        <button
+                          onClick={toggleEventEditMode}
+                          className="ml-2 text-violet-600 hover:text-fuchsia-600 inline-flex items-center align-middle"
+                          title="Edit price and other details"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -73,10 +130,12 @@ const Pricing = () => {
                     </div>
                     <div>
                       <div className="text-sm text-gray-500">DATE</div>
-                      <div className="text-gray-700 font-bold">19th April</div>
+                      <div className="text-gray-700 font-bold">
+                        {eventDetails.date || '19th April'}
+                      </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center bg-fuchsia-50 p-4 rounded-xl">
                     <div className="bg-fuchsia-100 rounded-full p-2 mr-4">
                       <svg className="h-6 w-6 text-fuchsia-600" fill="currentColor" viewBox="0 0 20 20">
@@ -85,10 +144,12 @@ const Pricing = () => {
                     </div>
                     <div>
                       <div className="text-sm text-gray-500">TIME</div>
-                      <div className="text-gray-700 font-bold">11:30 AM</div>
+                      <div className="text-gray-700 font-bold">
+                        {eventDetails.time || '11:30 AM'}
+                      </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center bg-pink-50 p-4 rounded-xl">
                     <div className="bg-pink-100 rounded-full p-2 mr-4">
                       <svg className="h-6 w-6 text-pink-600" fill="currentColor" viewBox="0 0 20 20">
@@ -97,11 +158,13 @@ const Pricing = () => {
                     </div>
                     <div>
                       <div className="text-sm text-gray-500">LOCATION</div>
-                      <div className="text-gray-700 font-bold">Live on Zoom</div>
+                      <div className="text-gray-700 font-bold">
+                        {eventDetails.location || 'Live on Zoom'}
+                      </div>
                       <div className="text-xs text-gray-500">Interactive + Reflective Exercises</div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center bg-indigo-50 p-4 rounded-xl">
                     <div className="bg-indigo-100 rounded-full p-2 mr-4">
                       <svg className="h-6 w-6 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
@@ -110,23 +173,25 @@ const Pricing = () => {
                     </div>
                     <div>
                       <div className="text-sm text-gray-500">DURATION</div>
-                      <div className="text-gray-700 font-bold">3-Hour Comprehensive Session</div>
+                      <div className="text-gray-700 font-bold">
+                        {eventDetails.duration || '3-Hour Comprehensive Session'}
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <motion.button 
+                <motion.button
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                   className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 px-6 rounded-full font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center"
                   onClick={() => window.location.href = "/register"}
                 >
-                  <span className="mr-2">Enroll Now - Only ₹99</span>
+                  <span className="mr-2">Enroll Now - Only ₹{eventDetails.price || 99}</span>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
                   </svg>
                 </motion.button>
-                
+
                 <div className="text-center mt-6">
                   <p className="text-gray-600 mb-1">
                     <span className="inline-block bg-yellow-100 text-yellow-700 px-2 py-1 rounded-md text-sm font-medium">
@@ -142,6 +207,101 @@ const Pricing = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Modal - Shows when editing event details */}
+      {eventDetails.isEditing && canEdit && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md relative">
+            <h3 className="text-xl font-bold mb-4">Edit Event Details</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <input
+                  type="text"
+                  value={eventDetails.tempDate || eventDetails.date}
+                  onChange={(e) => updateEventDetails({ tempDate: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  placeholder="e.g., APRIL 19TH"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                <input
+                  type="text"
+                  value={eventDetails.tempTime || eventDetails.time}
+                  onChange={(e) => updateEventDetails({ tempTime: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  placeholder="e.g., 11:30 AM"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Price (₹)</label>
+                <input
+                  type="text"
+                  value={eventDetails.tempPrice || eventDetails.price || 99}
+                  onChange={(e) => updateEventDetails({ tempPrice: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  placeholder="e.g., 99"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Original Price (₹)</label>
+                <input
+                  type="text"
+                  value={eventDetails.tempOriginalPrice || eventDetails.originalPrice || 199}
+                  onChange={(e) => updateEventDetails({ tempOriginalPrice: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  placeholder="e.g., 199"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <input
+                  type="text"
+                  value={eventDetails.tempLocation || eventDetails.location || "Live on Zoom"}
+                  onChange={(e) => updateEventDetails({ tempLocation: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  placeholder="e.g., Live on Zoom"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
+                <input
+                  type="text"
+                  value={eventDetails.tempDuration || eventDetails.duration || "3-Hour Comprehensive Session"}
+                  onChange={(e) => updateEventDetails({ tempDuration: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  placeholder="e.g., 3-Hour Comprehensive Session"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Discount Percentage</label>
+                <input
+                  type="text"
+                  value={eventDetails.tempDiscountPercentage || eventDetails.discountPercentage || "50%"}
+                  onChange={(e) => updateEventDetails({ tempDiscountPercentage: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  placeholder="e.g., 50%"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={toggleEventEditMode}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveChanges}
+                className="px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-md"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };

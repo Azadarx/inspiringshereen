@@ -18,11 +18,19 @@ export function ContentProvider({ children }) {
     const { currentUser, isAdmin } = useAuth();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [saveSuccess, setSaveSuccess] = useState(false);
+    const [showToast, setShowToast] = useState(false);
+    const [toastMessage, setToastMessage] = useState('');
 
     // Editable content states
     const [eventDetails, setEventDetails] = useState({
         date: 'APRIL 19TH',
         time: '11:30 AM',
+        price: '99',
+        originalPrice: '199',
+        location: 'Live on Zoom',
+        duration: '3-Hour Comprehensive Session',
+        discountPercentage: '50%',
         isEditing: false
     });
 
@@ -54,6 +62,20 @@ export function ContentProvider({ children }) {
         }
     }, [error]);
 
+    // Show toast and clear success message after 3 seconds
+    useEffect(() => {
+        if (saveSuccess) {
+            setShowToast(true);
+            setToastMessage('Changes saved successfully!');
+            
+            const timer = setTimeout(() => {
+                setSaveSuccess(false);
+                setEventDetails(prev => ({ ...prev, isEditing: false }));
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [saveSuccess]);
+
     // Load content from Firebase on component mount
     useEffect(() => {
         async function loadContent() {
@@ -70,7 +92,12 @@ export function ContentProvider({ children }) {
                         setEventDetails(prevState => ({
                             ...prevState,
                             date: data.eventDetails.date || prevState.date,
-                            time: data.eventDetails.time || prevState.time
+                            time: data.eventDetails.time || prevState.time,
+                            price: data.eventDetails.price || prevState.price,
+                            originalPrice: data.eventDetails.originalPrice || prevState.originalPrice,
+                            location: data.eventDetails.location || prevState.location,
+                            duration: data.eventDetails.duration || prevState.duration,
+                            discountPercentage: data.eventDetails.discountPercentage || prevState.discountPercentage
                         }));
                     }
 
@@ -106,7 +133,12 @@ export function ContentProvider({ children }) {
             await set(contentRef, {
                 eventDetails: {
                     date: eventDetails.date,
-                    time: eventDetails.time
+                    time: eventDetails.time,
+                    price: eventDetails.price,
+                    originalPrice: eventDetails.originalPrice,
+                    location: eventDetails.location,
+                    duration: eventDetails.duration,
+                    discountPercentage: eventDetails.discountPercentage
                 },
                 coaches: coaches
             });
@@ -116,7 +148,6 @@ export function ContentProvider({ children }) {
         }
     };
 
-
     // Update event details
     const updateEventDetails = async (newDetails) => {
         if (!isAdmin) {
@@ -125,13 +156,28 @@ export function ContentProvider({ children }) {
         }
 
         try {
-            const eventRef = ref(rtdb, 'content/eventDetails');
-            await update(eventRef, newDetails);
+            // If this is a save operation with all final values
+            if (newDetails.hasOwnProperty('date') && !newDetails.hasOwnProperty('tempDate')) {
+                const eventRef = ref(rtdb, 'content/eventDetails');
+                
+                // Filter out temp properties and isEditing before saving to Firebase
+                const cleanDetails = {...newDetails};
+                Object.keys(cleanDetails).forEach(key => {
+                    if (key.startsWith('temp') || key === 'isEditing') {
+                        delete cleanDetails[key];
+                    }
+                });
+                
+                await update(eventRef, cleanDetails);
+                setSaveSuccess(true);
+                setShowToast(true);
+                setToastMessage('Changes saved successfully!');
+            }
 
             setEventDetails(prevState => ({
                 ...prevState,
                 ...newDetails,
-                isEditing: false
+                isEditing: newDetails.hasOwnProperty('isEditing') ? newDetails.isEditing : prevState.isEditing
             }));
 
             return true;
@@ -161,6 +207,9 @@ export function ContentProvider({ children }) {
 
             setCoaches(newCoaches);
             setIsEditingCoaches(false);
+            setSaveSuccess(true);
+            setShowToast(true);
+            setToastMessage('Coaches updated successfully!');
 
             return true;
         } catch (err) {
@@ -191,6 +240,9 @@ export function ContentProvider({ children }) {
             await set(coachRef, updatedCoach);
 
             setCoaches(updatedCoaches);
+            setSaveSuccess(true);
+            setShowToast(true);
+            setToastMessage('Coach updated successfully!');
             return true;
         } catch (err) {
             console.error("Error updating coach:", err);
@@ -226,6 +278,11 @@ export function ContentProvider({ children }) {
         }
     };
 
+    // Handle toast close
+    const hideToast = () => {
+        setShowToast(false);
+    };
+
     // Context value
     const value = {
         eventDetails,
@@ -233,6 +290,10 @@ export function ContentProvider({ children }) {
         isEditingCoaches,
         error,
         loading,
+        saveSuccess,
+        showToast,
+        toastMessage,
+        hideToast,
         canEdit: isAdmin,
         updateEventDetails,
         toggleEventEditMode,
@@ -248,5 +309,3 @@ export function ContentProvider({ children }) {
         </ContentContext.Provider>
     );
 }
-
-export default ContentContext;
