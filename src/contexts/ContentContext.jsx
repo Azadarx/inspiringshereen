@@ -1,6 +1,6 @@
 // src/contexts/ContentContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { ref, get, set, update } from 'firebase/database';
+import { ref, get, set, update, onValue } from 'firebase/database';
 import { rtdb } from '../firebase/config';
 import { useAuth } from './AuthContext';
 import { uploadToCloudinary } from '../utils/uploadToCloudinary';
@@ -18,7 +18,6 @@ export function ContentProvider({ children }) {
     const { currentUser, isAdmin } = useAuth();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [saveSuccess, setSaveSuccess] = useState(false);
     const [showToast, setShowToast] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
 
@@ -39,7 +38,7 @@ export function ContentProvider({ children }) {
             name: "Inspiring Shereen",
             title: "Life Coach",
             description: "Shaping Lives With Holistic Success",
-            image: null, // Will be populated from Firebase
+            image: null,
             bio: "With over 10 years of experience in transformational coaching, Shereen has helped hundreds of professionals reclaim their purpose and passion.",
             expertise: ["Personal Development", "Life Transformation", "Mindfulness Training"]
         },
@@ -47,7 +46,7 @@ export function ContentProvider({ children }) {
             name: "Sikander Tuteja",
             title: "Holistic Success Coach",
             description: "Expert in business growth and personal development",
-            image: null, // Will be populated from Firebase
+            image: null,
             bio: "A seasoned entrepreneur and mindset coach, Sikander specializes in helping professionals align their career goals with their core values.",
             expertise: ["Business Strategy", "Wealth Creation", "Leadership Development"]
         }
@@ -62,63 +61,60 @@ export function ContentProvider({ children }) {
         }
     }, [error]);
 
-    // Show toast and clear success message after 3 seconds
+    // Show toast and clear it after 3 seconds
     useEffect(() => {
-        if (saveSuccess) {
-            setShowToast(true);
-            setToastMessage('Changes saved successfully!');
-            
+        if (showToast) {
             const timer = setTimeout(() => {
-                setSaveSuccess(false);
-                setEventDetails(prev => ({ ...prev, isEditing: false }));
-            }, 2000);
+                setShowToast(false);
+            }, 3000);
             return () => clearTimeout(timer);
         }
-    }, [saveSuccess]);
+    }, [showToast]);
 
-    // Load content from Firebase on component mount
+    // Load content from Firebase on component mount and listen for real-time updates
     useEffect(() => {
-        async function loadContent() {
-            try {
-                // Get content reference from Firebase
-                const contentRef = ref(rtdb, 'content');
-                const snapshot = await get(contentRef);
+        // Set up a real-time listener for content changes
+        const contentRef = ref(rtdb, 'content');
+        
+        const unsubscribe = onValue(contentRef, (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
 
-                if (snapshot.exists()) {
-                    const data = snapshot.val();
-
-                    // Update event details if available
-                    if (data.eventDetails) {
-                        setEventDetails(prevState => ({
-                            ...prevState,
-                            date: data.eventDetails.date || prevState.date,
-                            time: data.eventDetails.time || prevState.time,
-                            price: data.eventDetails.price || prevState.price,
-                            originalPrice: data.eventDetails.originalPrice || prevState.originalPrice,
-                            location: data.eventDetails.location || prevState.location,
-                            duration: data.eventDetails.duration || prevState.duration,
-                            discountPercentage: data.eventDetails.discountPercentage || prevState.discountPercentage
-                        }));
-                    }
-
-                    // Update coaches if available
-                    if (data.coaches) {
-                        setCoaches(data.coaches);
-                    }
-                } else if (isAdmin) {
-                    // Only admin can initialize the content
-                    await initializeContent();
+                // Update event details if available
+                if (data.eventDetails) {
+                    setEventDetails(prevState => ({
+                        ...prevState,
+                        date: data.eventDetails.date || prevState.date,
+                        time: data.eventDetails.time || prevState.time,
+                        price: data.eventDetails.price || prevState.price,
+                        originalPrice: data.eventDetails.originalPrice || prevState.originalPrice,
+                        location: data.eventDetails.location || prevState.location,
+                        duration: data.eventDetails.duration || prevState.duration,
+                        discountPercentage: data.eventDetails.discountPercentage || prevState.discountPercentage,
+                        isEditing: false // Always close edit mode when new data arrives
+                    }));
                 }
 
-            } catch (err) {
-                console.error("Error loading content:", err);
-                setError("Failed to load content. Please refresh the page.");
-            } finally {
+                // Update coaches if available
+                if (data.coaches) {
+                    setCoaches(data.coaches);
+                }
+                
+                setLoading(false);
+            } else if (isAdmin) {
+                // Initialize content if it doesn't exist (only for admin)
+                initializeContent();
+            } else {
                 setLoading(false);
             }
-        }
+        }, (error) => {
+            console.error("Firebase data fetch error:", error);
+            setError("Failed to load content. Please refresh the page.");
+            setLoading(false);
+        });
 
-        loadContent();
+        // Clean up subscription on unmount
+        return () => unsubscribe();
     }, [isAdmin]);
 
     // Initialize content in Firebase if it doesn't exist
@@ -142,9 +138,11 @@ export function ContentProvider({ children }) {
                 },
                 coaches: coaches
             });
+            setLoading(false);
         } catch (err) {
             console.error("Error initializing content:", err);
             setError("Failed to initialize content.");
+            setLoading(false);
         }
     };
 
@@ -156,29 +154,35 @@ export function ContentProvider({ children }) {
         }
 
         try {
-            // If this is a save operation with all final values
-            if (newDetails.hasOwnProperty('date') && !newDetails.hasOwnProperty('tempDate')) {
-                const eventRef = ref(rtdb, 'content/eventDetails');
-                
-                // Filter out temp properties and isEditing before saving to Firebase
-                const cleanDetails = {...newDetails};
-                Object.keys(cleanDetails).forEach(key => {
-                    if (key.startsWith('temp') || key === 'isEditing') {
-                        delete cleanDetails[key];
-                    }
-                });
-                
-                await update(eventRef, cleanDetails);
-                setSaveSuccess(true);
-                setShowToast(true);
-                setToastMessage('Changes saved successfully!');
-            }
-
+            // First update the local state
             setEventDetails(prevState => ({
                 ...prevState,
                 ...newDetails,
                 isEditing: newDetails.hasOwnProperty('isEditing') ? newDetails.isEditing : prevState.isEditing
             }));
+
+            // If isEditing is explicitly set to false, persist changes to Firebase
+            if (newDetails.hasOwnProperty('isEditing') && newDetails.isEditing === false) {
+                const eventRef = ref(rtdb, 'content/eventDetails');
+                
+                // Create a clean copy without isEditing flag for Firebase
+                const updatedDetails = {
+                    date: newDetails.date || eventDetails.date,
+                    time: newDetails.time || eventDetails.time,
+                    price: newDetails.price || eventDetails.price,
+                    originalPrice: newDetails.originalPrice || eventDetails.originalPrice,
+                    location: newDetails.location || eventDetails.location,
+                    duration: newDetails.duration || eventDetails.duration,
+                    discountPercentage: newDetails.discountPercentage || eventDetails.discountPercentage
+                };
+                
+                // Save to Firebase
+                await update(eventRef, updatedDetails);
+                
+                // Show success message
+                setShowToast(true);
+                setToastMessage('Event details saved successfully!');
+            }
 
             return true;
         } catch (err) {
@@ -191,7 +195,11 @@ export function ContentProvider({ children }) {
     // Toggle event edit mode
     const toggleEventEditMode = () => {
         if (!isAdmin) return;
-        setEventDetails(prev => ({ ...prev, isEditing: !prev.isEditing }));
+        
+        setEventDetails(prev => ({ 
+            ...prev, 
+            isEditing: !prev.isEditing 
+        }));
     };
 
     // Update all coaches
@@ -207,7 +215,6 @@ export function ContentProvider({ children }) {
 
             setCoaches(newCoaches);
             setIsEditingCoaches(false);
-            setSaveSuccess(true);
             setShowToast(true);
             setToastMessage('Coaches updated successfully!');
 
@@ -240,7 +247,6 @@ export function ContentProvider({ children }) {
             await set(coachRef, updatedCoach);
 
             setCoaches(updatedCoaches);
-            setSaveSuccess(true);
             setShowToast(true);
             setToastMessage('Coach updated successfully!');
             return true;
@@ -290,7 +296,6 @@ export function ContentProvider({ children }) {
         isEditingCoaches,
         error,
         loading,
-        saveSuccess,
         showToast,
         toastMessage,
         hideToast,
@@ -306,6 +311,25 @@ export function ContentProvider({ children }) {
     return (
         <ContentContext.Provider value={value}>
             {children}
+            
+            {/* Toast notification */}
+            {showToast && (
+                <div className="fixed bottom-6 right-6 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-md z-50 animate-fade-in-up">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span>{toastMessage}</span>
+                        </div>
+                        <button onClick={hideToast} className="text-green-700 hover:text-green-900">
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            )}
         </ContentContext.Provider>
     );
 }

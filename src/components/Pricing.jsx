@@ -10,7 +10,6 @@ const Pricing = () => {
     canEdit,
     toggleEventEditMode,
     updateEventDetails,
-    saveSuccess,
     showToast,
     toastMessage,
     hideToast
@@ -18,7 +17,8 @@ const Pricing = () => {
 
   // Function to handle save changes
   const handleSaveChanges = async () => {
-    const success = await updateEventDetails({
+    // Create the updated event details object with clean values (replacing temp values)
+    const updatedDetails = {
       date: eventDetails.tempDate || eventDetails.date,
       time: eventDetails.tempTime || eventDetails.time,
       price: eventDetails.tempPrice || eventDetails.price || 99,
@@ -26,6 +26,7 @@ const Pricing = () => {
       location: eventDetails.tempLocation || eventDetails.location || "Live on Zoom",
       duration: eventDetails.tempDuration || eventDetails.duration || "3-Hour Comprehensive Session",
       discountPercentage: eventDetails.tempDiscountPercentage || eventDetails.discountPercentage || "50%",
+      // Reset all temp values
       tempDate: null,
       tempTime: null,
       tempPrice: null,
@@ -33,8 +34,11 @@ const Pricing = () => {
       tempLocation: null,
       tempDuration: null,
       tempDiscountPercentage: null,
-      isEditing: false // Explicitly set to false to close the modal
-    });
+      isEditing: false
+    };
+    
+    // Call the context update function to save to Firebase
+    await updateEventDetails(updatedDetails);
   };
 
   return (

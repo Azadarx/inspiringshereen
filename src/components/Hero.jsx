@@ -5,15 +5,71 @@ import { useContent } from '../contexts/ContentContext';
 
 const Hero = () => {
   const { eventDetails, canEdit, updateEventDetails, toggleEventEditMode } = useContent();
-  const [tempDate, setTempDate] = useState(eventDetails.date);
-  const [tempTime, setTempTime] = useState(eventDetails.time);
+  
+  // Create state for all editable fields
+  const [editFormData, setEditFormData] = useState({
+    date: eventDetails.date,
+    time: eventDetails.time,
+    price: eventDetails.price,
+    originalPrice: eventDetails.originalPrice,
+    discountPercentage: eventDetails.discountPercentage
+  });
 
-  const handleSave = async () => {
-    await updateEventDetails({
-      date: tempDate,
-      time: tempTime
-    });
+  // Handle form input changes
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
+
+  // Save changes to Firebase
+  const handleSave = async () => {
+    const success = await updateEventDetails({
+      ...editFormData,
+      isEditing: false // Close edit mode after saving
+    });
+    
+    if (!success) {
+      // Reset form data if save failed
+      setEditFormData({
+        date: eventDetails.date,
+        time: eventDetails.time,
+        price: eventDetails.price,
+        originalPrice: eventDetails.originalPrice,
+        discountPercentage: eventDetails.discountPercentage
+      });
+    }
+  };
+
+  // Cancel editing
+  const handleCancel = () => {
+    // Reset form data
+    setEditFormData({
+      date: eventDetails.date,
+      time: eventDetails.time,
+      price: eventDetails.price,
+      originalPrice: eventDetails.originalPrice,
+      discountPercentage: eventDetails.discountPercentage
+    });
+    
+    // Close edit mode
+    toggleEventEditMode();
+  };
+
+  // When edit mode is toggled, update form data with current values
+  React.useEffect(() => {
+    if (eventDetails.isEditing) {
+      setEditFormData({
+        date: eventDetails.date,
+        time: eventDetails.time,
+        price: eventDetails.price,
+        originalPrice: eventDetails.originalPrice,
+        discountPercentage: eventDetails.discountPercentage
+      });
+    }
+  }, [eventDetails.isEditing]);
 
   return (
     <div className="relative min-h-screen bg-white overflow-hidden">
@@ -50,35 +106,77 @@ const Hero = () => {
                   )}
                 </div>
               ) : (
-                <div className="flex flex-col sm:flex-row items-center gap-2 bg-violet-50 p-2 rounded-lg border border-violet-200">
-                  <div className="flex flex-col sm:flex-row items-center gap-2">
-                    <input
-                      type="text"
-                      value={tempDate}
-                      onChange={(e) => setTempDate(e.target.value)}
-                      className="border border-violet-300 rounded px-2 py-1 text-sm w-32"
-                      placeholder="e.g., APRIL 19TH"
-                    />
-                    <input
-                      type="text"
-                      value={tempTime}
-                      onChange={(e) => setTempTime(e.target.value)}
-                      className="border border-violet-300 rounded px-2 py-1 text-sm w-24"
-                      placeholder="e.g., 11:30 AM"
-                    />
+                <div className="bg-violet-50 p-4 rounded-lg border border-violet-200 mb-4">
+                  <h3 className="text-violet-700 font-bold mb-3">Edit Event Details</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">Event Date</label>
+                      <input
+                        type="text"
+                        name="date"
+                        value={editFormData.date}
+                        onChange={handleInputChange}
+                        className="border border-violet-300 rounded px-3 py-2 w-full"
+                        placeholder="e.g., APRIL 19TH"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">Event Time</label>
+                      <input
+                        type="text"
+                        name="time"
+                        value={editFormData.time}
+                        onChange={handleInputChange}
+                        className="border border-violet-300 rounded px-3 py-2 w-full"
+                        placeholder="e.g., 11:30 AM"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">Price (₹)</label>
+                      <input
+                        type="text"
+                        name="price"
+                        value={editFormData.price}
+                        onChange={handleInputChange}
+                        className="border border-violet-300 rounded px-3 py-2 w-full"
+                        placeholder="e.g., 99"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">Original Price (₹)</label>
+                      <input
+                        type="text"
+                        name="originalPrice"
+                        value={editFormData.originalPrice}
+                        onChange={handleInputChange}
+                        className="border border-violet-300 rounded px-3 py-2 w-full"
+                        placeholder="e.g., 199"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">Discount (%)</label>
+                      <input
+                        type="text"
+                        name="discountPercentage"
+                        value={editFormData.discountPercentage}
+                        onChange={handleInputChange}
+                        className="border border-violet-300 rounded px-3 py-2 w-full"
+                        placeholder="e.g., 50%"
+                      />
+                    </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex justify-end gap-2">
                     <button
-                      onClick={handleSave}
-                      className="bg-violet-600 text-white px-2 py-1 rounded text-sm hover:bg-violet-700"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={toggleEventEditMode}
-                      className="bg-gray-200 text-gray-700 px-2 py-1 rounded text-sm hover:bg-gray-300"
+                      onClick={handleCancel}
+                      className="bg-gray-200 text-gray-700 px-3 py-2 rounded text-sm hover:bg-gray-300"
                     >
                       Cancel
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      className="bg-violet-600 text-white px-3 py-2 rounded text-sm hover:bg-violet-700"
+                    >
+                      Save Changes
                     </button>
                   </div>
                 </div>
@@ -123,15 +221,15 @@ const Hero = () => {
                 onClick={() => window.location.href = "/register"}
               >
                 <span className="flex items-center justify-center">
-                  Enroll Now - Only ₹99
+                  Enroll Now - Only ₹{eventDetails.price}
                   <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
                   </svg>
                 </span>
               </motion.button>
               <span className="text-gray-600 flex items-center">
-                <span className="line-through mr-2">Actual Fee: ₹199</span>
-                <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-md text-sm font-semibold">50% OFF</span>
+                <span className="line-through mr-2">Actual Fee: ₹{eventDetails.originalPrice}</span>
+                <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-md text-sm font-semibold">{eventDetails.discountPercentage} OFF</span>
               </span>
             </motion.div>
           </div>

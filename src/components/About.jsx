@@ -2,7 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import { motion, useInView, useAnimation } from 'framer-motion';
 import { useContent } from '../contexts/ContentContext';
-import SuccessToast from './SuccessToast'; // Import the toast component
+import SuccessToast from './SuccessToast';
 
 const About = () => {
   const controls = useAnimation();
@@ -13,7 +13,6 @@ const About = () => {
     canEdit, 
     toggleEventEditMode, 
     updateEventDetails, 
-    saveSuccess,
     showToast,
     toastMessage,
     hideToast
@@ -47,22 +46,16 @@ const About = () => {
 
   // Function to handle save changes
   const handleSaveChanges = async () => {
+    // Save directly to Firebase with permanent values (not temp values)
     const success = await updateEventDetails({
       date: eventDetails.tempDate || eventDetails.date,
       time: eventDetails.tempTime || eventDetails.time,
-      price: eventDetails.tempPrice || eventDetails.price || 99,
-      originalPrice: eventDetails.tempOriginalPrice || eventDetails.originalPrice || 199,
-      location: eventDetails.tempLocation || eventDetails.location || "Live on Zoom",
-      duration: eventDetails.tempDuration || eventDetails.duration || "3-Hour Comprehensive Session",
-      discountPercentage: eventDetails.tempDiscountPercentage || eventDetails.discountPercentage || "50%",
-      tempDate: null,
-      tempTime: null,
-      tempPrice: null,
-      tempOriginalPrice: null,
-      tempLocation: null,
-      tempDuration: null,
-      tempDiscountPercentage: null,
-      isEditing: false // Explicitly set to false to close the modal
+      price: eventDetails.tempPrice || eventDetails.price,
+      originalPrice: eventDetails.tempOriginalPrice || eventDetails.originalPrice,
+      location: eventDetails.tempLocation || eventDetails.location,
+      duration: eventDetails.tempDuration || eventDetails.duration,
+      discountPercentage: eventDetails.tempDiscountPercentage || eventDetails.discountPercentage,
+      isEditing: false // Close the modal
     });
   };
 
@@ -121,7 +114,7 @@ const About = () => {
               icon: "📍",
               color: "from-pink-500 to-rose-500",
               title: "Interactive Session",
-              description: `Live on Zoom (Interactive + Reflective Exercises) on ${eventDetails.date} at ${eventDetails.time}.`,
+              description: `Live on ${eventDetails.location || "Zoom"} (Interactive + Reflective Exercises) on ${eventDetails.date || "APRIL 19TH"} at ${eventDetails.time || "11:30 AM"}.`,
               isDateField: true
             }
           ].map((item, index) => (
@@ -208,7 +201,7 @@ const About = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Price (₹)</label>
                 <input
                   type="text"
-                  value={eventDetails.tempPrice || eventDetails.price || 99}
+                  value={eventDetails.tempPrice || eventDetails.price}
                   onChange={(e) => updateEventDetails({ tempPrice: e.target.value })}
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                   placeholder="e.g., 99"
@@ -218,7 +211,7 @@ const About = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Original Price (₹)</label>
                 <input
                   type="text"
-                  value={eventDetails.tempOriginalPrice || eventDetails.originalPrice || 199}
+                  value={eventDetails.tempOriginalPrice || eventDetails.originalPrice}
                   onChange={(e) => updateEventDetails({ tempOriginalPrice: e.target.value })}
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                   placeholder="e.g., 199"
@@ -228,7 +221,7 @@ const About = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
                 <input
                   type="text"
-                  value={eventDetails.tempLocation || eventDetails.location || "Live on Zoom"}
+                  value={eventDetails.tempLocation || eventDetails.location}
                   onChange={(e) => updateEventDetails({ tempLocation: e.target.value })}
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                   placeholder="e.g., Live on Zoom"
@@ -238,7 +231,7 @@ const About = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
                 <input
                   type="text"
-                  value={eventDetails.tempDuration || eventDetails.duration || "3-Hour Comprehensive Session"}
+                  value={eventDetails.tempDuration || eventDetails.duration}
                   onChange={(e) => updateEventDetails({ tempDuration: e.target.value })}
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                   placeholder="e.g., 3-Hour Comprehensive Session"
@@ -248,7 +241,7 @@ const About = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Discount Percentage</label>
                 <input
                   type="text"
-                  value={eventDetails.tempDiscountPercentage || eventDetails.discountPercentage || "50%"}
+                  value={eventDetails.tempDiscountPercentage || eventDetails.discountPercentage}
                   onChange={(e) => updateEventDetails({ tempDiscountPercentage: e.target.value })}
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                   placeholder="e.g., 50%"
