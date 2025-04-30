@@ -163,7 +163,7 @@ const Footer = () => {
               <li>
                 <a href="tel:+1234567890" className="group flex items-center text-gray-300 hover:text-white transition-colors duration-300">
                   <span className="inline-block w-0 group-hover:w-4 transition-all duration-300 h-0.5 bg-gradient-to-r from-purple-400 to-pink-400 mr-0 group-hover:mr-2"></span>
-                  +91 99516 11674
+                  
                 </a>
               </li>
             </ul>

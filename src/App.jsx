@@ -64,6 +64,7 @@ const AppRoutes = () => {
             <RegisterForm />
             <Features />
             <Testimonials />
+            <ContactUs />
             <Footer />
           </div>
         } />

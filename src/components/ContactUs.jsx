@@ -100,15 +100,15 @@ const ContactUs = () => {
                 </div>
                 
                 <div className="mt-6">
-                  <p className="text-gray-700 mb-3 flex items-center">
+                  {/* <p className="text-gray-700 mb-3 flex items-center">
                     <Phone className="text-purple-600 mr-2" size={18} />
                     <span className="font-medium">Phone:</span> 9494100110
-                  </p>
+                  </p> */}
                   <p className="text-gray-700 flex items-center">
                     <Mail className="text-purple-600 mr-2" size={18} />
                     <span className="font-medium">Email:</span> 
-                    <a href="mailto:phonicswithshereen@gmail.com" className="text-purple-600 ml-1 hover:text-purple-800 transition-colors">
-                      phonicswithshereen@gmail.com
+                    <a href="mailto:inspiringshereen@gmail.com" className="text-purple-600 ml-1 hover:text-purple-800 transition-colors">
+                      inspiringshereen@gmail.com
                     </a>
                   </p>
                 </div>
