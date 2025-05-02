@@ -17,6 +17,7 @@ import RazorpayPrivacyPolicy from './components/RazorpayPrivacyPolicy';
 import Profile from './components/Profile';
 import AuthFlowHandler from './components/auth/AuthFlowHandler';
 import Loader from './components/Loader';
+import ScrollToTop from './components/ScrollToTop';
 
 // Loading state context
 export const LoadingContext = React.createContext({
@@ -53,6 +54,7 @@ const RouteChangeLoader = ({ children }) => {
 const AppRoutes = () => {
   return (
     <RouteChangeLoader>
+      <ScrollToTop /> {/* Add ScrollToTop component here */}
       <Routes>
         <Route path="/" element={
           <div className="font-poppins">
