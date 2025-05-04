@@ -196,7 +196,7 @@ const ContactUs = () => {
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-start bg-white/50 p-3 rounded-lg">
                   <span className="font-medium text-purple-700 min-w-32 mb-1 sm:mb-0">Legal entity name:</span>
-                  <span className="text-gray-700 ml-0 sm:ml-2">SHEREEN BEGUM</span>
+                  <span className="text-gray-700 ml-0 sm:ml-2">Mrs. Shereen</span>
                 </div>
                 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-start bg-white/50 p-3 rounded-lg">
